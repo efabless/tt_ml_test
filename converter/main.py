@@ -20,12 +20,10 @@ class Model:
         for i, layer in enumerate(self.model):
             if isinstance(layer, nn.Linear):
                 self.layers.append(layers.Linear.layer_from(layer, i))
-            elif isinstance(layer, nn.Quantize):
-                self.layers.append(layers.Quantize.layer_from(layer, i))
             elif isinstance(layer, nn.ReLU):
                 self.layers.append(layers.ReLU(self.model[i - 1].out_features, i))
             else:
-                raise ValueError(f'Unknown layer type {layer}')
+                continue
 
     def forward_range(self, ranges: List[List[float]]):
         start = np.array(ranges)
@@ -115,7 +113,54 @@ def test():
 
     with open('test_tb.v', 'w') as f:
         f.write(model.emit_test_bench())
+def test_quant():
+    simple_model = nn.Sequential(
+        nn.Linear(2, 1),
+        nn.ReLU(),
+    )
+
+    simple_model[0].weight = nn.Parameter(torch.tensor([[1.0, -1.0]]))
+    simple_model[0].bias = nn.Parameter(torch.tensor([1.0]))
+
+    x_data = torch.tensor([[1.0, -1.0], [0.0, 1024.0]])
+
+    simple_model_quantized = nn.Sequential(
+        torch.quantization.QuantStub(),
+        nn.Linear(2, 1),
+        nn.ReLU(),
+        torch.quantization.DeQuantStub()
+    )
+
+    #model_quantized = QuantizedSinePredictor(input_size, hidden_size, output_size)
+
+    # Copy weights from unquantized model
+    # simple_model_quantized.load_state_dict(simple_model.state_dict())
+    simple_model_quantized[0].weight = nn.Parameter(torch.tensor([[1.0, -1.0]]))
+    simple_model_quantized[0].bias = nn.Parameter(torch.tensor([1.0]))
+
+    simple_model_quantized.eval()
+
+    simple_model_quantized.qconfig = torch.ao.quantization.default_qconfig
+    simple_model_quantized = torch.ao.quantization.prepare(simple_model_quantized)
+
+    y_data_pred = simple_model_quantized(x_data)
+
+    simple_model_quantized = torch.ao.quantization.convert(simple_model_quantized)
+
+    model = Model(simple_model_quantized)
+
+    model.parse_layers()
+    model.forward_range([[1.0, 100.0], [0.0, 1024.0]])
+
+    print(model)
+    code = model.emit()
+
+    with open('test.v', 'w') as f:
+        f.write(code)
+
+    with open('test_tb.v', 'w') as f:
+        f.write(model.emit_test_bench())
 
 
 if __name__ == '__main__':
-    test()
+    test_quant()
