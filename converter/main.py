@@ -114,29 +114,53 @@ def test():
     with open('test_tb.v', 'w') as f:
         f.write(model.emit_test_bench())
 def test_quant():
-    simple_model = nn.Sequential(
-        nn.Linear(2, 1),
-        nn.ReLU(),
-    )
+    class SimpleModel(nn.Module):
+        def __init__(self):
+            super(SimpleModel, self).__init__()
+            self.net = nn.Sequential(
+                nn.Linear(2, 1),
+                nn.ReLU()
+            )
+        def forward(self, x):
+            x = self.net[1](self.net[0](x))
+            return x
 
-    simple_model[0].weight = nn.Parameter(torch.tensor([[1.0, -1.0]]))
-    simple_model[0].bias = nn.Parameter(torch.tensor([1.0]))
+    simple_model = SimpleModel()
+
+    simple_model.net[0].weight = nn.Parameter(torch.tensor([[1.0, -1.0]]))
+    simple_model.net[0].bias = nn.Parameter(torch.tensor([1.0]))
 
     x_data = torch.tensor([[1.0, -1.0], [0.0, 1024.0]])
 
-    simple_model_quantized = nn.Sequential(
-        torch.quantization.QuantStub(),
-        nn.Linear(2, 1),
-        nn.ReLU(),
-        torch.quantization.DeQuantStub()
-    )
+    class QuantizedSimpleModel(nn.Module):
+        def __init__(self):
+            super(QuantizedSimpleModel, self).__init__()
+            self.quant = torch.quantization.QuantStub(),
+            self.net = nn.Sequential(
+                nn.Linear(2, 1),
+                nn.ReLU()
+            )
+            self.dequant = torch.quantization.DeQuantStub(),
+
+        def forward(self, x):
+            x = self.net[1](self.net[0](x))
+            return x
+
+    # simple_model_quantized = nn.Sequential(
+    #     torch.quantization.QuantStub(),
+    #     nn.Linear(2, 1),
+    #     nn.ReLU(),
+    #     torch.quantization.DeQuantStub()
+    # )
+
+    simple_model_quantized = QuantizedSimpleModel()
 
     #model_quantized = QuantizedSinePredictor(input_size, hidden_size, output_size)
 
     # Copy weights from unquantized model
     # simple_model_quantized.load_state_dict(simple_model.state_dict())
-    simple_model_quantized[0].weight = nn.Parameter(torch.tensor([[1.0, -1.0]]))
-    simple_model_quantized[0].bias = nn.Parameter(torch.tensor([1.0]))
+    simple_model_quantized.net[0].weight = nn.Parameter(torch.tensor([[1.0, -1.0]]))
+    simple_model_quantized.net[0].bias = nn.Parameter(torch.tensor([1.0]))
 
     simple_model_quantized.eval()
 
@@ -147,7 +171,7 @@ def test_quant():
 
     simple_model_quantized = torch.ao.quantization.convert(simple_model_quantized)
 
-    model = Model(simple_model_quantized)
+    model = Model(simple_model_quantized.net)
 
     model.parse_layers()
     model.forward_range([[1.0, 100.0], [0.0, 1024.0]])
