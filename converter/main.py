@@ -21,7 +21,7 @@ class Model:
             if isinstance(layer, nn.Linear):
                 self.layers.append(layers.Linear.layer_from(layer, i))
             elif isinstance(layer, nn.Quantize):
-                self.layers.append(layers.Linear.layer_from(layer, i))
+                self.layers.append(layers.Quantize.layer_from(layer, i))
             elif isinstance(layer, nn.ReLU):
                 self.layers.append(layers.ReLU(self.model[i - 1].out_features, i))
             else:
