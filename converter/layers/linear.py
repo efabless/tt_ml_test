@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 from layers.utils import range_to_bits
 
@@ -6,7 +7,9 @@ from layers.utils import range_to_bits
 class Linear:
     @classmethod
     def layer_from(cls, layer, index: int):
-        return cls(layer.in_features, layer.out_features, layer.weight.detach().numpy().T, layer.bias.detach().numpy(),
+        # return cls(layer.in_features, layer.out_features, layer.weight.detach().numpy().T, layer.bias.detach().numpy(),
+        # return cls(layer.in_features, layer.out_features, np.array([[5],[2]]), np.array([7]),
+        return cls(layer.in_features, layer.out_features, torch.int_repr(layer.weight()), torch.tensor([[0.0, 0.0]]),
                    index)
 
     def __init__(self, in_features: int, out_features: int, weight: np.ndarray, bias: np.ndarray, index: int):
