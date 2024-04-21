@@ -24,6 +24,10 @@ class Model:
         for layer_name in self.model.layers():
             layer = getattr(self.model, layer_name)
             if isinstance(layer, torch.ao.nn.quantized.modules.linear.Linear):
+                self.layers.append(layers.Linear.layer_from_q(layer, i))
+                i += 1
+                last_out_features = layer.out_features
+            elif isinstance(layer, nn.Linear):
                 self.layers.append(layers.Linear.layer_from(layer, i))
                 i += 1
                 last_out_features = layer.out_features
@@ -144,7 +148,8 @@ def test_quant():
         def __init__(self):
             super().__init__()
             self.quant = torch.ao.quantization.QuantStub()
-            self.fc1 = nn.Linear(2, 1)
+            self.fc1 = nn.Linear(1, 2)
+            self.fc2 = nn.Linear(2, 1)
             self.relu = nn.ReLU()
             # self.net = nn.Sequential(
             #     nn.Linear(2, 1),
@@ -154,8 +159,8 @@ def test_quant():
 
         def forward(self, x):
             x = self.quant(x)
-            x = self.fc1(x)
-            x = self.relu(x)
+            x = self.relu(self.fc1(x))
+            x = self.fc2(x)
             # x = self.net[1](self.net[0](x))
             x = self.dequant(x)
             return x
@@ -176,11 +181,10 @@ def test_quant():
     #model_quantized = QuantizedSinePredictor(input_size, hidden_size, output_size)
 
     # Copy weights from unquantized model
-    # simple_model_quantized.load_state_dict(simple_model.state_dict())
-    # simple_model_quantized.net[0].weight = nn.Parameter(torch.tensor([[1.0, -1.0]]))
     simple_model_quantized.fc1.weight = nn.Parameter(torch.tensor([[1.0], [-1.0]]))
-    # simple_model_quantized.net[0].bias = nn.Parameter(torch.tensor([1.0]))
-    simple_model_quantized.fc1.bias = nn.Parameter(torch.tensor([[0.0]]))
+    simple_model_quantized.fc1.bias = nn.Parameter(torch.tensor([[0.5], [-1.0]]))
+    simple_model_quantized.fc2.weight = nn.Parameter(torch.tensor([[0.0, 0.0]]))
+    simple_model_quantized.fc2.bias = nn.Parameter(torch.tensor([[0.5]]))
     simple_model_quantized.eval()
 
     simple_model_quantized.qconfig = torch.ao.quantization.default_qconfig
@@ -193,7 +197,7 @@ def test_quant():
     model = Model(simple_model_quantized)
 
     model.parse_layers()
-    model.forward_range([[1.0, 100.0], [0.0, 1024.0]])
+    model.forward_range([[0.0,0.0],[2.0, 2.0]])
 
     print(model)
     code = model.emit()

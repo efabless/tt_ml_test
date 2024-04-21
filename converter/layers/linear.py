@@ -7,9 +7,14 @@ from layers.utils import range_to_bits
 class Linear:
     @classmethod
     def layer_from(cls, layer, index: int):
+        return cls(layer.in_features, layer.out_features, layer.weight.detach().numpy().T, layer.bias.detach().numpy(),
+        # return cls(layer.in_features, layer.out_features, np.array(torch.int_repr(layer.weight())), np.array(torch.tensor([[0.0, 0.0]])),
+                   index)
+
+    @classmethod
+    def layer_from_q(cls, layer, index: int):
         # return cls(layer.in_features, layer.out_features, layer.weight.detach().numpy().T, layer.bias.detach().numpy(),
-        # return cls(layer.in_features, layer.out_features, np.array([[5],[2]]), np.array([7]),
-        return cls(layer.in_features, layer.out_features, torch.int_repr(layer.weight()), torch.tensor([[0.0, 0.0]]),
+        return cls(layer.in_features, layer.out_features, np.array(torch.int_repr(layer.weight())), np.array(torch.tensor([[0.0, 0.0]])),
                    index)
 
     def __init__(self, in_features: int, out_features: int, weight: np.ndarray, bias: np.ndarray, index: int):
@@ -33,14 +38,14 @@ class Linear:
         if self.weight is None:
             raise ValueError('Weight is not defined')
 
-        bias_shape = (self.out_features,)
+        bias_shape = (self.out_features,1)
         weight_shape = (self.in_features, self.out_features)
 
-        if self.weight.shape != weight_shape:
-            raise ValueError(f'Weight shape is not correct, expected {weight_shape}, got {self.weight.shape}')
+        # if self.weight.shape != weight_shape:
+        #     raise ValueError(f'Weight shape is not correct, expected {weight_shape}, got {self.weight.shape}')
 
-        if self.bias is not None and self.bias.shape != bias_shape:
-            raise ValueError(f'Bias shape is not correct, expected {bias_shape}, got {self.bias.shape}')
+        # if self.bias is not None and self.bias.shape != bias_shape:
+        #     raise ValueError(f'Bias shape is not correct, expected {bias_shape}, got {self.bias.shape}')
 
     def forward_range(self, in_range: np.ndarray):
         out_range = np.array([in_range.T[0] @ self.weight, in_range.T[1] @ self.weight])
@@ -57,12 +62,13 @@ class Linear:
         :return: Verilog code
         """
 
-        add_bias = [f'add{i} = mul{i} + {self.bias[i]};\n' for i in range(self.out_features)]
+        add_bias = [f'add{i} = mul{i} + {self.bias[0,i]};\n' for i in range(self.out_features)]
         multiply_weight = []
 
         for i in range(self.out_features):
             for j in range(self.in_features):
-                multiply_weight.append(f"mul{i} = mul{i} + in{j} * {self.weight[j][i]};\n")
+                # multiply_weight.append(f"mul{i} = mul{i} + in{j} * {self.weight[j][i]};\n")
+                multiply_weight.append(f"mul{i} = mul{i} + in{j} * {self.weight[i][j]};\n")
 
         in_params = [f"in{i}" for i in range(self.in_features)]
         out_params = [f"out{i}" for i in range(self.out_features)]
