@@ -8,7 +8,7 @@ class ReLU:
     def __init__(self, shape: int, index: int):
         self.shape = (shape,)
         self.name = f'layer_{index}_relu_{shape}'
-        self.in_bits, self.out_bits = None, None
+        self.in_bits, self.out_bits = [], []
 
     def __str__(self):
         return f'ReLU({self.shape})'
@@ -16,8 +16,18 @@ class ReLU:
     def forward_range(self, in_range: np.ndarray):
         out_range = np.maximum(in_range, 0)
 
-        self.in_bits = [range_to_bits(*in_range[i]) for i in range(self.shape[0])]
-        self.out_bits = [range_to_bits(*out_range[i]) for i in range(self.shape[0])]
+        # self.in_bits = [range_to_bits(*in_range[i]) for i in range(self.shape[0])]
+        # self.out_bits = [range_to_bits(*out_range[i]) for i in range(self.shape[0])]
+
+        self.in_bits = []
+        self.out_bits = []
+        for r in range(len(in_range[0])):
+        # for r in range(self.shape[0]):
+            self.in_bits.append(range_to_bits(in_range[0][r],in_range[1][r]))
+        for r in range(len(out_range[0])):
+        # for r in range(self.shape[0]):
+            self.out_bits.append(range_to_bits(out_range[0][r],out_range[1][r]))
+
 
         return out_range
 
