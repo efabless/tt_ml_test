@@ -83,9 +83,9 @@ module layer_0_linear_1_4(
     always_ff(posedge clk)
         case (seq)
             5'd0 : out0 <= mac;
-            5'd1 : out0 <= mac;
-            5'd2 : out0 <= mac;
-            5'd3 : out0 <= mac;
+            5'd1 : out1 <= mac;
+            5'd2 : out2 <= mac;
+            5'd3 : out3 <= mac;
 
         endcase
 endmodule

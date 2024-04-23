@@ -95,7 +95,7 @@ class Linear:
         mul_definition = [f"reg [{self.out_bits[i] - 1}:0] mul{i};\n" for i in range(self.out_features)]
         add_definition = [f"reg [{self.out_bits[i] - 1}:0] add{i};\n" for i in range(self.out_features)]
 
-        assigns = [f"5'd{i} : out0 <= mac;\n" for i in range(self.out_features)]
+        assigns = [f"5'd{i} : out{i} <= mac;\n" for i in range(self.out_features)]
 
         return f"""
 module {self.name}_weights(
