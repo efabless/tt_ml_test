@@ -22,10 +22,10 @@ module layer_0_linear_1_4_biases(
 );
     always_comb begin
         case (indx)
-            4'd0 : b = 0.5;
-            4'd1 : b = -0.5;
-            4'd2 : b = 0.5;
-            4'd3 : b = -0.5;
+            4'd0 : b = 190;
+            4'd1 : b = 63;
+            4'd2 : b = 190;
+            4'd3 : b = 63;
 
         endcase
     end
@@ -45,7 +45,7 @@ module layer_0_linear_1_4(
     output done;
     
     reg[4:0] seq;
-    done = (seq == 5'd15);
+    assign done = (seq == 5'd15);
     wire [7:0] w;
     wire [7:0] b;
 
@@ -136,7 +136,7 @@ module layer_2_linear_4_1_biases(
 );
     always_comb begin
         case (indx)
-            4'd0 : b = 0.5;
+            4'd0 : b = 190;
 
         endcase
     end
@@ -156,7 +156,7 @@ module layer_2_linear_4_1(
     output done;
     
     reg[4:0] seq;
-    done = (seq == 5'd15);
+    assign done = (seq == 5'd15);
     wire [7:0] w;
     wire [7:0] b;
 

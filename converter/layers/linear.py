@@ -14,7 +14,7 @@ class Linear:
     @classmethod
     def layer_from_q(cls, layer, index: int):
         # return cls(layer.in_features, layer.out_features, layer.weight.detach().numpy().T, layer.bias.detach().numpy(),
-        return cls(layer.in_features, layer.out_features, np.array(torch.int_repr(layer.weight())), layer.bias(),
+        return cls(layer.in_features, layer.out_features, np.array(torch.int_repr(layer.weight())), (layer.bias()*127+127).int(),
                    index)
 
     def __init__(self, in_features: int, out_features: int, weight: np.ndarray, bias: np.ndarray, index: int):
@@ -135,7 +135,7 @@ module {self.name}(
     output done;
     
     reg[4:0] seq;
-    done = (seq == 5'd15);
+    assign done = (seq == 5'd15);
     wire [7:0] w;
     wire [7:0] b;
 
