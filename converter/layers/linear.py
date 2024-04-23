@@ -72,13 +72,16 @@ class Linear:
         :return: Verilog code
         """
 
-        add_bias = [f'add{i} = mul{i} + {self.bias[i]};\n' for i in range(self.out_features)]
+        add_bias = [f"add{i} = mul{i} + {self.bias[i]};\n" for i in range(self.out_features)]
+        biases = [f"4'd{i} : b = {self.bias[i]};\n" for i in range(self.out_features)]
         multiply_weight = []
+        weights = []
 
         for i in range(self.out_features):
             for j in range(self.in_features):
                 # multiply_weight.append(f"mul{i} = mul{i} + in{j} * {self.weight[j][i]};\n")
                 multiply_weight.append(f"mul{i} = mul{i} + in{j} * {self.weight[i][j]};\n")
+                weights.append(f"4'd{i} : w = {self.weight[i][j]};\n")
 
         in_params = [f"in{i}" for i in range(self.in_features)]
         out_params = [f"out{i}" for i in range(self.out_features)]
@@ -86,27 +89,90 @@ class Linear:
         in_definitions = [f"input [{self.in_bits[i] - 1}:0] {in_params[i]};\n"
                           for i in range(self.in_features)]
 
-        out_definitions = [f"output [{self.out_bits[i] - 1}:0] {out_params[i]};\n"
+        out_definitions = [f"reg [{self.out_bits[i] - 1}:0] {out_params[i]};\n"
                            for i in range(self.out_features)]
 
         mul_definition = [f"reg [{self.out_bits[i] - 1}:0] mul{i};\n" for i in range(self.out_features)]
         add_definition = [f"reg [{self.out_bits[i] - 1}:0] add{i};\n" for i in range(self.out_features)]
 
-        assigns = [f"assign out{i} = add{i};\n" for i in range(self.out_features)]
+        assigns = [f"5'd{i} : out0 <= mac;\n" for i in range(self.out_features)]
 
         return f"""
-module {self.name}({",".join(in_params)}, {",".join(out_params)});
-    {'    '.join(in_definitions)}
-    {'    '.join(out_definitions)}
-    
-    {'    '.join(mul_definition)}
-    {'    '.join(add_definition)}
-        
-    always @(*)
-    begin
-        {'        '.join(multiply_weight)}
-        {'        '.join(add_bias)}
+module {self.name}_weights(
+    input wire [3:0] indx,
+    output reg [7:0] w
+);
+    always_comb begin
+        case (indx)
+            {'            '.join(weights)}
+        endcase
     end
-    {'  '.join(assigns)}
+endmodule
+        
+
+module {self.name}_biases(
+    input wire [3:0] indx,
+    output reg [7:0] b
+);
+    always_comb begin
+        case (indx)
+            {'            '.join(biases)}
+        endcase
+    end
+endmodule
+
+module {self.name}(
+    clk, 
+    rst_n, 
+    start, 
+    done,
+    {",".join(in_params)}, 
+    {",".join(out_params)}
+);
+    input clk;
+    input rst_n;
+    input start;
+    output done;
+    
+    reg[4:0] seq;
+    done = (seq == 5'd15);
+    wire [7:0] w;
+    wire [7:0] b;
+
+    // The CU
+    localparam [2:0] ST_IDLE, ST_CALC;
+    reg[2:0] state, nstate;
+    always_comb begin
+        nstate = state;
+        case(state)
+            ST_IDLE: if(statrt) nstate = ST_CALC;
+            ST_CALC: if(done) nstate = ST_IDLE;
+        endcase
+    end
+    always_ff(posedge clk or negedge rst_n)
+        if(!rst_n)
+            state <= ST_IDLE;
+        else
+            state <= nstate;
+
+    // The sequencer
+    always_ff(posedge clk or negedge rst_n)
+        if(!rst_n)
+            seq <= 'd0;
+        else if (state == ST_IDLE)
+            seq <= 'd0;
+        else if (state == ST_CALC)
+            seq <= seq + 1;
+
+        {self.name}_weights WEIGHTS (.indx(seq), .w(w));
+        {self.name}_biases BIASES (.indx(seq), .b(b));
+
+    // The MAC
+    wire [9:0] mac = in0 * w + b;
+
+    always_ff(posedge clk)
+        case (seq)
+            {'            '.join(assigns)}
+        endcase
 endmodule
 """

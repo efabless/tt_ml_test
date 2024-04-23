@@ -120,7 +120,7 @@ def test():
     print(model)
     code = model.emit()
 
-    with open('test.v', 'w') as f:
+    with open('test.sv', 'w') as f:
         f.write(code)
 
     with open('test_tb.v', 'w') as f:
@@ -201,7 +201,7 @@ def test_quant():
     print(model)
     code = model.emit()
 
-    with open('test.v', 'w') as f:
+    with open('test.sv', 'w') as f:
         f.write(code)
 
     with open('test_tb.v', 'w') as f:
