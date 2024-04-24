@@ -44,6 +44,14 @@ module layer_0_linear_1_4(
     input start;
     output done;
     
+    input [7:0] in0;
+
+    reg [-1:0] out0;
+    reg [-1:0] out1;
+    reg [-1:0] out2;
+    reg [-1:0] out3;
+
+    
     reg[4:0] seq;
     assign done = (seq == 5'd15);
     wire [7:0] w;
@@ -170,6 +178,17 @@ module layer_2_linear_4_4(
     input start;
     output done;
     
+    input [-1:0] in0;
+    input [-1:0] in1;
+    input [-1:0] in2;
+    input [-1:0] in3;
+
+    reg [-1:0] out0;
+    reg [-1:0] out1;
+    reg [-1:0] out2;
+    reg [-1:0] out3;
+
+    
     reg[4:0] seq;
     assign done = (seq == 5'd15);
     wire [7:0] w;
@@ -257,6 +276,14 @@ module layer_3_linear_4_1(
     input rst_n;
     input start;
     output done;
+    
+    input [-1:0] in0;
+    input [-1:0] in1;
+    input [-1:0] in2;
+    input [-1:0] in3;
+
+    reg [-1:0] out0;
+
     
     reg[4:0] seq;
     assign done = (seq == 5'd15);

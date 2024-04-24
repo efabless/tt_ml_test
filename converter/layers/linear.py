@@ -139,6 +139,9 @@ module {self.name}(
     input start;
     output done;
     
+    {'    '.join(in_definitions)}
+    {'    '.join(out_definitions)}
+    
     reg[4:0] seq;
     assign done = (seq == 5'd15);
     wire [7:0] w;
