@@ -22,10 +22,10 @@ module layer_0_linear_1_4_biases(
 );
     always_comb begin
         case (indx)
-            4'd0 : b = 190;
-            4'd1 : b = 63;
-            4'd2 : b = 190;
-            4'd3 : b = 63;
+            4'd0 : b = 132;
+            4'd1 : b = 122;
+            4'd2 : b = 132;
+            4'd3 : b = 122;
 
         endcase
     end
@@ -148,10 +148,10 @@ module layer_2_linear_4_4_biases(
 );
     always_comb begin
         case (indx)
-            4'd0 : b = 190;
-            4'd1 : b = 63;
-            4'd2 : b = 190;
-            4'd3 : b = 63;
+            4'd0 : b = 132;
+            4'd1 : b = 122;
+            4'd2 : b = 132;
+            4'd3 : b = 122;
 
         endcase
     end
@@ -239,7 +239,7 @@ module layer_3_linear_4_1_biases(
 );
     always_comb begin
         case (indx)
-            4'd0 : b = 190;
+            4'd0 : b = 132;
 
         endcase
     end

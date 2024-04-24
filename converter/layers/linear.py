@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from layers.utils import range_to_bits
+from layers.utils import range_to_bits, int_repr
 
 
 class Linear:
@@ -14,25 +14,30 @@ class Linear:
     @classmethod
     def layer_from_q(cls, layer, index: int):
         # return cls(layer.in_features, layer.out_features, layer.weight.detach().numpy().T, layer.bias.detach().numpy(),
-        return cls(layer.in_features, layer.out_features, np.array(torch.int_repr(layer.weight())), (layer.bias()*127+127).int(),
+        return cls(layer.in_features, layer.out_features, np.array(torch.int_repr(layer.weight())), layer.bias(),
                    index)
 
-    def __init__(self, in_features: int, out_features: int, weight: np.ndarray, bias: np.ndarray, index: int):
+    def __init__(self, in_features: int, out_features: int, weight: np.ndarray, bias: np.ndarray, index: int,
+                 scale: float = 0.1, zero = 127):
         self.in_features = in_features
         self.out_features = out_features
-
-        self.bias = bias
+        self.scale = scale
+        self.zero = zero
+        self.bias = np.array([self.quant(b.detach().numpy()) for b in bias])
         self.weight = weight
-
         self.verify_weights()
-
         self.name = f'layer_{index}_linear_{str(self.in_features)}_{str(self.out_features)}'
         self.shape = (self.in_features, self.out_features)
-
         self.in_bits, self.out_bits = [], []
 
     def __str__(self):
         return f'Linear({self.in_features} -> {self.out_features})'
+
+    def quant(self, n: float):
+        return int( n / self.scale + self.zero )
+
+    def dequant(self, n: int):
+        return (n - self.zero) * self.scale
 
     def verify_weights(self):
         if self.weight is None:
@@ -50,11 +55,11 @@ class Linear:
 
     def forward_range(self, in_range: np.ndarray):
         if len(in_range[0]) == 1:
-            out_range = np.array( [np.sum(in_range[0] * self.weight), np.sum(in_range[1] * self.weight)] )
+            out_range = np.array( [np.sum(self.quant(in_range[0]) * self.weight), np.sum(self.quant(in_range[1]) * self.weight)] )
         else:
-            out_range = np.array([in_range[0] @ self.weight.T, in_range[1] @ self.weight.T])
+            out_range = np.array([[self.quant(i) for i in in_range[0]] @ self.weight.T, [self.quant(i) for i in in_range[1]] @ self.weight.T])
         # out_range = np.array([in_range[0].T @ self.weight, in_range[1].T @ self.weight])
-        out_range = [ out_range[0] + self.bias.detach().numpy(), out_range[1] + self.bias.detach().numpy() ]
+        out_range = [out_range[0] + self.bias, out_range[1] + self.bias]
         # out_range = (out_range + self.bias).T
 
         self.out_bits = []
