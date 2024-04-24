@@ -1,7 +1,7 @@
 import math
 
 
-def range_to_bits(low: float, high: float) -> int:
+def range_to_bits(low: float, high: float, scale = 0.1, zero = 127) -> int:
     """
     Convert a range to a number of bits required to represent it
     :param low: Lower bound
@@ -11,4 +11,7 @@ def range_to_bits(low: float, high: float) -> int:
 
     low, high = min(low, high), max(low, high)
 
-    return int(math.ceil(math.log2(high - low + 1)))
+    adj_high = high / scale + zero
+    adj_low = low / scale + zero
+
+    return int(math.ceil(math.log2(adj_high - adj_low + 1)))

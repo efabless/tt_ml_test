@@ -81,7 +81,7 @@ class Linear:
             for j in range(self.in_features):
                 # multiply_weight.append(f"mul{i} = mul{i} + in{j} * {self.weight[j][i]};\n")
                 multiply_weight.append(f"mul{i} = mul{i} + in{j} * {self.weight[i][j]};\n")
-                weights.append(f"4'd{i} : w = {self.weight[i][j]};\n")
+                weights.append(f"4'd{i*self.out_features+j} : w = {self.weight[i][j]};\n")
 
         in_params = [f"in{i}" for i in range(self.in_features)]
         out_params = [f"out{i}" for i in range(self.out_features)]

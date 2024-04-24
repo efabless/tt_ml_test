@@ -61,7 +61,18 @@ class Model:
         in_params, out_params, in_definitions, out_definitions = self.get_vars()
 
         top = [
-            f"module top({','.join(in_params)}, {','.join(out_params)});",
+            f"module top(",
+            f"    clk,",
+            f"    rst_n,",
+            f"    start,",
+            f"    done,",
+            f"    {','.join(in_params)},",
+            f"    {','.join(out_params)}",
+            f");",
+            f"    input clk;",
+            f"    input rst_n;",
+            f"    input start;",
+            f"    output done;",
             *in_definitions,
             *out_definitions,
         ]
@@ -126,21 +137,6 @@ def test():
     with open('test_tb.v', 'w') as f:
         f.write(model.emit_test_bench())
 def test_quant():
-    # class SimpleModel(nn.Module):
-    #     def __init__(self):
-    #         super(SimpleModel, self).__init__()
-    #         self.net = nn.Sequential(
-    #             nn.Linear(2, 1),
-    #             nn.ReLU()
-    #         )
-    #     def forward(self, x):
-    #         x = self.net[1](self.net[0](x))
-    #         return x
-    #
-    # simple_model = SimpleModel()
-    #
-    # simple_model.net[0].weight = nn.Parameter(torch.tensor([[1.0, -1.0]]))
-    # simple_model.net[0].bias = nn.Parameter(torch.tensor([1.0]))
 
     x_data = torch.tensor([[1.0],[2.0],[3.0]])
 
@@ -150,37 +146,36 @@ def test_quant():
             self.quant = torch.ao.quantization.QuantStub()
             self.fc1 = nn.Linear(1, 4)
             self.relu = nn.ReLU()
-            self.fc2 = nn.Linear(4, 1)
+            self.fc2 = nn.Linear(4, 4)
+            self.fc3 = nn.Linear(4, 1)
             self.dequant = torch.ao.quantization.DeQuantStub()
 
         def forward(self, x):
             x = self.quant(x)
             x = self.relu(self.fc1(x))
-            x = self.fc2(x)
+            x = self.relu(self.fc2(x))
+            x = self.fc3(x)
             x = self.dequant(x)
             return x
 
         def layers(self):
-            # return ['quant','fc1', 'relu', 'dequant']
-            return ['fc1', 'relu', 'fc2']
-
-    # simple_model_quantized = nn.Sequential(
-    #     torch.quantization.QuantStub(),
-    #     nn.Linear(2, 1),
-    #     nn.ReLU(),
-    #     torch.quantization.DeQuantStub()
-    # )
+            return ['fc1', 'relu', 'fc2', 'fc3']
 
     simple_model_quantized = QuantizedSimpleModel()
 
-    #model_quantized = QuantizedSinePredictor(input_size, hidden_size, output_size)
-
-    # Copy weights from unquantized model
     simple_model_quantized.fc1.weight = nn.Parameter(torch.tensor([[1.0],[-1.0],[1.0],[-1.0]]))
     simple_model_quantized.fc1.bias = nn.Parameter(torch.tensor([0.5,-0.5,0.5,-0.5]))
-    # simple_model_quantized.fc1.bias = nn.Parameter(torch.tensor([[0.5,-0.5,0.5,-0.5]]))
-    simple_model_quantized.fc2.weight = nn.Parameter(torch.tensor([[1.0, -1.0, 1.0, -1.0]]))
-    simple_model_quantized.fc2.bias = nn.Parameter(torch.tensor([0.5]))
+
+    simple_model_quantized.fc2.weight = nn.Parameter(torch.tensor([[1.0, -1.0, 1.0, -1.0],
+                                                                   [1.0, -1.0, 1.0, -1.0],
+                                                                   [1.0, -1.0, 1.0, -1.0],
+                                                                   [1.0, -1.0, 1.0, -1.0]
+                                                                   ]))
+    simple_model_quantized.fc2.bias = nn.Parameter(torch.tensor([0.5,-0.5,0.5,-0.5]))
+
+    simple_model_quantized.fc3.weight = nn.Parameter(torch.tensor([[1.0, -1.0, 1.0, -1.0]]))
+    simple_model_quantized.fc3.bias = nn.Parameter(torch.tensor([0.5]))
+
     simple_model_quantized.eval()
 
     simple_model_quantized.qconfig = torch.ao.quantization.default_qconfig
@@ -194,8 +189,8 @@ def test_quant():
 
     model.parse_layers()
     model.forward_range([
-        [0.0],
-        [2.0]
+        [-10.0],
+        [10.0]
     ])
 
     print(model)

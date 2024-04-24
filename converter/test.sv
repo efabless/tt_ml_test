@@ -7,9 +7,9 @@ module layer_0_linear_1_4_weights(
     always_comb begin
         case (indx)
             4'd0 : w = 127;
-            4'd1 : w = -127;
-            4'd2 : w = 127;
-            4'd3 : w = -127;
+            4'd4 : w = -127;
+            4'd8 : w = 127;
+            4'd12 : w = -127;
 
         endcase
     end
@@ -114,23 +114,126 @@ module layer_1_relu_4(in0,in1,in2,in3, out0,out1,out2,out3);
 endmodule
 
 
-module layer_2_linear_4_1_weights(
+module layer_2_linear_4_4_weights(
     input wire [3:0] indx,
     output reg [7:0] w
 );
     always_comb begin
         case (indx)
             4'd0 : w = 127;
-            4'd0 : w = -127;
-            4'd0 : w = 127;
-            4'd0 : w = -127;
+            4'd1 : w = -127;
+            4'd2 : w = 127;
+            4'd3 : w = -127;
+            4'd4 : w = 127;
+            4'd5 : w = -127;
+            4'd6 : w = 127;
+            4'd7 : w = -127;
+            4'd8 : w = 127;
+            4'd9 : w = -127;
+            4'd10 : w = 127;
+            4'd11 : w = -127;
+            4'd12 : w = 127;
+            4'd13 : w = -127;
+            4'd14 : w = 127;
+            4'd15 : w = -127;
 
         endcase
     end
 endmodule
         
 
-module layer_2_linear_4_1_biases(
+module layer_2_linear_4_4_biases(
+    input wire [3:0] indx,
+    output reg [7:0] b
+);
+    always_comb begin
+        case (indx)
+            4'd0 : b = 190;
+            4'd1 : b = 63;
+            4'd2 : b = 190;
+            4'd3 : b = 63;
+
+        endcase
+    end
+endmodule
+
+module layer_2_linear_4_4(
+    clk, 
+    rst_n, 
+    start, 
+    done,
+    in0,in1,in2,in3, 
+    out0,out1,out2,out3
+);
+    input clk;
+    input rst_n;
+    input start;
+    output done;
+    
+    reg[4:0] seq;
+    assign done = (seq == 5'd15);
+    wire [7:0] w;
+    wire [7:0] b;
+
+    // The CU
+    localparam [2:0] ST_IDLE, ST_CALC;
+    reg[2:0] state, nstate;
+    always_comb begin
+        nstate = state;
+        case(state)
+            ST_IDLE: if(statrt) nstate = ST_CALC;
+            ST_CALC: if(done) nstate = ST_IDLE;
+        endcase
+    end
+    always_ff(posedge clk or negedge rst_n)
+        if(!rst_n)
+            state <= ST_IDLE;
+        else
+            state <= nstate;
+
+    // The sequencer
+    always_ff(posedge clk or negedge rst_n)
+        if(!rst_n)
+            seq <= 'd0;
+        else if (state == ST_IDLE)
+            seq <= 'd0;
+        else if (state == ST_CALC)
+            seq <= seq + 1;
+
+        layer_2_linear_4_4_weights WEIGHTS (.indx(seq), .w(w));
+        layer_2_linear_4_4_biases BIASES (.indx(seq), .b(b));
+
+    // The MAC
+    wire [9:0] mac = in0 * w + b;
+
+    always_ff(posedge clk)
+        case (seq)
+            5'd0 : out0 <= mac;
+            5'd1 : out1 <= mac;
+            5'd2 : out2 <= mac;
+            5'd3 : out3 <= mac;
+
+        endcase
+endmodule
+
+
+module layer_3_linear_4_1_weights(
+    input wire [3:0] indx,
+    output reg [7:0] w
+);
+    always_comb begin
+        case (indx)
+            4'd0 : w = 127;
+            4'd1 : w = -127;
+            4'd2 : w = 127;
+            4'd3 : w = -127;
+
+        endcase
+    end
+endmodule
+        
+
+module layer_3_linear_4_1_biases(
     input wire [3:0] indx,
     output reg [7:0] b
 );
@@ -142,7 +245,7 @@ module layer_2_linear_4_1_biases(
     end
 endmodule
 
-module layer_2_linear_4_1(
+module layer_3_linear_4_1(
     clk, 
     rst_n, 
     start, 
@@ -185,8 +288,8 @@ module layer_2_linear_4_1(
         else if (state == ST_CALC)
             seq <= seq + 1;
 
-        layer_2_linear_4_1_weights WEIGHTS (.indx(seq), .w(w));
-        layer_2_linear_4_1_biases BIASES (.indx(seq), .b(b));
+        layer_3_linear_4_1_weights WEIGHTS (.indx(seq), .w(w));
+        layer_3_linear_4_1_biases BIASES (.indx(seq), .b(b));
 
     // The MAC
     wire [9:0] mac = in0 * w + b;
@@ -198,8 +301,19 @@ module layer_2_linear_4_1(
         endcase
 endmodule
 
-module top(in0, out0);
-    input [1:0] in0;
+module top(
+    clk,
+    rst_n,
+    start,
+    done,
+    in0,
+    out0
+);
+    input clk;
+    input rst_n;
+    input start;
+    output done;
+    input [7:0] in0;
     output [-1:0] out0;
     wire [0:0] layer_0_out_0;
     wire [0:0] layer_0_out_1;
@@ -212,6 +326,11 @@ module top(in0, out0);
     wire [0:0] layer_1_out_3;
     layer_1_relu_4 layer_1(layer_0_out_0,layer_0_out_1,layer_0_out_2,layer_0_out_3, layer_1_out_0,layer_1_out_1,layer_1_out_2,layer_1_out_3);
     wire [0:0] layer_2_out_0;
-    layer_2_linear_4_1 layer_2(layer_1_out_0,layer_1_out_1,layer_1_out_2,layer_1_out_3, layer_2_out_0);
-    assign out0 = layer_2_out_0;
+    wire [0:0] layer_2_out_1;
+    wire [0:0] layer_2_out_2;
+    wire [0:0] layer_2_out_3;
+    layer_2_linear_4_4 layer_2(layer_1_out_0,layer_1_out_1,layer_1_out_2,layer_1_out_3, layer_2_out_0,layer_2_out_1,layer_2_out_2,layer_2_out_3);
+    wire [0:0] layer_3_out_0;
+    layer_3_linear_4_1 layer_3(layer_2_out_0,layer_2_out_1,layer_2_out_2,layer_2_out_3, layer_3_out_0);
+    assign out0 = layer_3_out_0;
 endmodule
